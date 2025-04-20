@@ -18,7 +18,7 @@ A containerized full-stack e-commerce application built with React, Node.js, and
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone [<repository-url>](https://github.com/kisio/yolo.git)
 cd yolo
 ```
 
