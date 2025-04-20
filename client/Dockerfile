@@ -1,28 +1,30 @@
-# Use an official Node runtime as a parent image
-FROM node:14-slim AS build
-
-# Set the working directory in the container
-WORKDIR /usr/src/app
-
-# Copy the package.json and package-lock.json files to the container
-COPY package*.json ./
-
-# Install application dependencies
-RUN npm install
-
-# Copy the rest of the application code to the container
-COPY . .
-
-FROM alpine:3.16.7
-
+# Build stage
+FROM node:13.12.0 as builder
 WORKDIR /app
+COPY package*.json ./
+RUN npm config set registry https://registry.npmjs.org/ && \
+    npm config set fetch-retries 5 && \
+    npm config set fetch-retry-factor 2 && \
+    npm config set fetch-retry-mintimeout 10000 && \
+    npm config set fetch-retry-maxtimeout 60000 && \
+    npm install
+COPY . .
+RUN npm run build
 
-RUN apk update && apk add npm
+# Production stage
+FROM nginx:alpine
+COPY --from=builder /app/build /usr/share/nginx/html
 
-COPY --from=build /usr/src/app /app
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /usr/share/nginx/html && \
+    chmod -R 755 /usr/share/nginx/html && \
+    chown -R appuser:appgroup /var/cache/nginx && \
+    chown -R appuser:appgroup /var/log/nginx && \
+    chown -R appuser:appgroup /etc/nginx/conf.d && \
+    touch /var/run/nginx.pid && \
+    chown -R appuser:appgroup /var/run/nginx.pid
+USER appuser
 
-# Expose the port the app runs on
 EXPOSE 3000
-
-# Define the command to run your app
-CMD ["npm", "start"]
+CMD ["nginx", "-g", "daemon off;"]

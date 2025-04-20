@@ -1,29 +1,24 @@
-# Use an official Node runtime as a parent image
-FROM node:14 AS build
-
-# Set the working directory in the container
-WORKDIR /usr/src/app
-
-# Copy the package.json and package-lock.json files to the container
+# Build stage
+FROM node:13.12.0 as builder
+WORKDIR /app
 COPY package*.json ./
+RUN npm config set registry https://registry.npmjs.org/ && \
+    npm config set fetch-retries 5 && \
+    npm config set fetch-retry-factor 2 && \
+    npm config set fetch-retry-mintimeout 10000 && \
+    npm config set fetch-retry-maxtimeout 60000 && \
+    npm install
 
-# Install application dependencies
-RUN npm install
-
-# Copy the rest of the application code to the container
+# Production stage
+FROM node:13.12.0-slim
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
 COPY . .
 
-#Add multi-stage build
-FROM alpine:3.16.7
+# Create non-root user
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser && \
+    chown -R appuser:appgroup /app
+USER appuser
 
-WORKDIR /app
-
-RUN apk update && apk add --update nodejs
-
-COPY --from=build /usr/src/app /app
-
-# Expose the port the app runs on
 EXPOSE 5000
-
-# Define the command to run your app
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
