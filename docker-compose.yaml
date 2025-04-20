@@ -17,8 +17,6 @@ services:
       context: ./client
       dockerfile: Dockerfile
     container_name: brian-yolo-client
-    stdin_open: true
-    tty: true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
@@ -27,7 +25,8 @@ services:
     ports:
       - "3000:3000"
     depends_on: 
-      - brian-yolo-backend
+      brian-yolo-backend:
+        condition: service_healthy
     networks:
       - app-net
 
@@ -38,8 +37,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: brian-yolo-backend
-    stdin_open: true
-    tty: true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000"]
       interval: 30s
@@ -48,40 +45,11 @@ services:
     restart: always
     ports:
       - "5000:5000"
-    depends_on: 
-      - app-ip-mongo
-    networks:
-      - app-net
     environment:
-      - MONGO_URI=mongodb://app-ip-mongo:27017/yolo
-
-  #Creates the database microservice
-  app-ip-mongo:
-    image: mongo:5.0.9
-    container_name: app-mongo
-    ports:
-      - "27017:27017"
+      - NODE_ENV=development
     networks:
       - app-net
-    volumes:
-      - app-mongo-data:/data/db
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-#Creates the network infrastructure necessary for the containers to communicate with each other
 networks:
   app-net:
     driver: bridge
-    attachable: true
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16 
-          ip_range: 172.20.0.0/16 
-
-#Creates a Docker volume that persists all the data stored in the database
-volumes:
-  app-mongo-data:
-    driver: local

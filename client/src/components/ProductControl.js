@@ -131,38 +131,18 @@ class ProductControl extends Component {
 
     // Method to handle adding a new product
     handleAddingNewProduct = (newProduct) =>{
-        // if (newProduct.photo === undefined){
-        //     newProduct.photo = Default_image
-        // }
-        // console.log(newProduct.name)
-        // const newProductList = this.state.actualProductList.concat(newProduct)
-        // var formData = new FormData()
-
-        // formData.append('data',newProduct)
-        // for (let key of Object.keys(newProduct)){
-        //     formData.set(key, newProduct[key])
-        // }
-        // formData.append('myFile', this.state.uploadPhoto)
-
-        // console.log(formData)   
-        // var formData = new FormData();
-        // formData.append('myImage',newProduct);
-        // const config = {
-        //     headers: {
-        //         'content-type': 'multipart/form-data'
-        //     }
-        // };
-        // console.log(formData) 
-        // for (var pair of formData.entries()) {
-        //     console.log(pair[0]+ ', ' + pair[1]); 
-        // }       
-        // console.log(...formData)
         axios.post('http://localhost:5000/api/products', newProduct)
-            .then(res => console.log(res.data))
-        this.setState({
-            formVisibleOnPage: false
-        })
-    };
+            .then(res => {
+                console.log(res.data);
+                this.setState({
+                    formVisibleOnPage: false,
+                    actualProductList: [...this.state.actualProductList, res.data]
+                });
+            })
+            .catch(err => {
+                console.error('Error adding product:', err);
+            });
+    }
     handleDeletingProduct = (id) =>{
         axios.delete('http://localhost:5000/api/products/'+id)
             .then(res => console.log(res.data))
@@ -226,4 +206,3 @@ class ProductControl extends Component {
 }
 
 export default ProductControl;
-
