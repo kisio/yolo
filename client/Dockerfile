@@ -15,7 +15,14 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Create non-root user
+# Maintainer label
+LABEL maintainer="kisio <derrickkisio@gmail.com>"
+
+# Health check for frontend service
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget --spider http://localhost:3000/ || exit 1
+
+# Create non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
     chown -R appuser:appgroup /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html && \
