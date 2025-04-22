@@ -15,7 +15,14 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY . .
 
-# Create non-root user
+# Maintainer label
+LABEL maintainer="kisio <derrickkisio@gmail.com>"
+
+# Health check for backend service
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:5000/ || exit 1
+
+# Create non-root user for security
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser && \
     chown -R appuser:appgroup /app
 USER appuser
