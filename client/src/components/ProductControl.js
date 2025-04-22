@@ -1,3 +1,6 @@
+// ProductControl: Manages the product list, selection, and CRUD operations
+// Uses axios for backend API communication
+// Consider improving accessibility by adding alt text to product images
 import React, { Component } from 'react';
 import axios from 'axios';
 import ProductList from './ProductList';
@@ -94,6 +97,7 @@ class ProductControl extends Component {
         })
     }
     handleAddButtonClick = (id) =>{
+        // Decrement product quantity when a product is bought
         const BuyProduct = this.state.actualProductList.filter(product => product._id === id)[0];
         BuyProduct.quantity = BuyProduct.quantity - 1;
         if (BuyProduct.quantity <= 0) {
@@ -175,6 +179,7 @@ class ProductControl extends Component {
     }
 
     render() {
+        // TODO: Add alt text to all product images for accessibility
         let currentlyVisibleState = null;
         let buttonText = null;
         // let addProductButton = null;

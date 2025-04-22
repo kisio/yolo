@@ -65,18 +65,32 @@ All services are connected through a custom bridge network and use Docker volume
 - Volume permissions properly configured
 - Health checks implemented
 
+## Environment Variables
+
+The backend requires the following environment variables (can be set in a `.env` file or via Docker Compose):
+- `MONGODB_URI`: MongoDB connection string
+- `PORT`: Backend server port (default: 5000)
+
+The frontend can be configured with:
+- `REACT_APP_API_URL`: URL of the backend API
+
+## DockerHub
+
+Images are available at: https://hub.docker.com/u/kisio
+
+## Contribution Guidelines
+
+1. Fork the repository
+2. Create a new branch for your feature or fix
+3. Commit your changes with descriptive messages
+4. Open a pull request
+
 ## API Endpoints
 
-- GET /products - Get all products
-- POST /products - Create a new product
-  ```json
-  {
-    "name": "Product Name",
-    "description": "Product Description",
-    "price": "Product Price",
-    "quantity": "Product Quantity"
-  }
-  ```
+- `GET /api/products`: List all products
+- `POST /api/products`: Add a product
+- `PUT /api/products/:id`: Edit a product
+- `DELETE /api/products/:id`: Delete a product
 
 ## Development
 
