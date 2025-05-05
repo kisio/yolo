@@ -1,16 +1,19 @@
 ---
-- name: Pull image from repository
+- name: Pull backend image from repository
   docker_image:
-    name: brianbwire/brian-yolo-backend:v1.0.0
+    name: "{{ backend_image }}"
     source: pull
 
 - name: Create Node.js Backend Container
   docker_container:
-    name: brian-yolo-backend
-    image: brianbwire/brian-yolo-backend:v1.0.0
+    name: "{{ backend_container }}"
+    image: "{{ backend_image }}"
     networks:
-      - name: app-net
+      - name: "{{ app_network }}"
     ports:
-      - "5000:5000"
+      - "{{ backend_port }}"
     command: "npm start"
   become: yes
+  tags:
+    - backend
+    - api

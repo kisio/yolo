@@ -1,0 +1,19 @@
+---
+- name: Pull frontend image from repository
+  docker_image:
+    name: "{{ frontend_image }}"
+    source: pull
+
+- name: Create frontend container
+  docker_container:
+    name: "{{ frontend_container }}"
+    image: "{{ frontend_image }}"
+    networks:
+      - name: "{{ app_network }}"
+    ports:
+      - "{{ frontend_port }}"
+    command: "nginx -g 'daemon off;'"
+  become: yes
+  tags:
+    - frontend
+    - web

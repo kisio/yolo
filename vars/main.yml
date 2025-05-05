@@ -1,0 +1,12 @@
+---
+frontend_image: brianbwire/brian-yolo-frontend:v1.0.0
+backend_image: brianbwire/brian-yolo-backend:v1.0.0
+mongo_image: mongo
+frontend_container: brian-yolo-frontend
+backend_container: brian-yolo-backend
+mongo_container: app-mongo
+mongo_port: "27017:27017"
+backend_port: "5000:5000"
+frontend_port: "80:80"
+app_network: app-net
+mongo_volume: ./app-mongo-data:/data/db
