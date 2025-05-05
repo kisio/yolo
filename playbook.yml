@@ -13,6 +13,7 @@
         - clone
         - setup
   roles:
+    - docker-install
     - setup-mongodb
     - backend-deployment
     - frontend-deployment
