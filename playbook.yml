@@ -12,8 +12,9 @@
       tags:
         - clone
         - setup
+        - app
   roles:
-    - docker-install
-    - setup-mongodb
-    - backend-deployment
-    - frontend-deployment
+    - { role: docker-install, tags: ['docker', 'setup', 'infrastructure'] }
+    - { role: setup-mongodb, tags: ['mongodb', 'database', 'app'] }
+    - { role: backend-deployment, tags: ['backend', 'api', 'app'] }
+    - { role: frontend-deployment, tags: ['frontend', 'ui', 'app'] }

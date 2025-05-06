@@ -1,32 +1,57 @@
 ---
-- name: Install Docker dependencies
-  apt:
-    name:
-      - apt-transport-https
-      - ca-certificates
-      - curl
-      - software-properties-common
-    state: present
-    update_cache: yes
+- name: Docker Installation Tasks
+  block:
+    - name: Install Docker dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+        update_cache: yes
+      tags:
+        - docker
+        - dependencies
 
-- name: Add Docker GPG key
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      tags:
+        - docker
+        - repository
 
-- name: Add Docker repository
-  apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
-    state: present
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+      tags:
+        - docker
+        - repository
 
-- name: Install Docker
-  apt:
-    name: docker-ce
-    state: present
-    update_cache: yes
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+      tags:
+        - docker
+        - install
 
-- name: Ensure Docker is started
-  service:
-    name: docker
-    state: started
-    enabled: yes
+    - name: Ensure Docker is started
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      tags:
+        - docker
+        - service
+  rescue:
+    - name: Print Docker installation failure message
+      debug:
+        msg: "Docker installation failed. Please check system requirements and try again."
+      
+    - name: Fail the playbook if Docker installation fails
+      fail:
+        msg: "Docker installation failed. Cannot proceed with application deployment."
