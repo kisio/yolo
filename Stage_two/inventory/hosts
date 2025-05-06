@@ -1,0 +1,2 @@
+[aws_instances]
+# This file will be populated by Terraform with the public IP of the EC2 instance

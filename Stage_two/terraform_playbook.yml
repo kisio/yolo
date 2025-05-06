@@ -1,0 +1,119 @@
+---
+- name: Provision AWS Infrastructure with Terraform
+  hosts: localhost
+  gather_facts: false
+  vars:
+    terraform_dir: "{{ playbook_dir }}/terraform"
+  tasks:
+    - name: Check if Terraform is installed
+      command: terraform --version
+      register: terraform_version
+      ignore_errors: true
+      changed_when: false
+      tags:
+        - always
+
+    - name: Fail if Terraform is not installed
+      fail:
+        msg: "Terraform is not installed. Please install Terraform first."
+      when: terraform_version.rc != 0
+      tags:
+        - always
+
+    - name: Initialize Terraform
+      command: terraform init
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: terraform_init
+      changed_when: terraform_init.rc == 0
+      tags:
+        - terraform
+        - init
+
+    - name: Plan Terraform changes
+      command: terraform plan -out=tfplan
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: terraform_plan
+      changed_when: terraform_plan.rc == 0
+      tags:
+        - terraform
+        - plan
+
+    - name: Apply Terraform changes
+      command: terraform apply -auto-approve tfplan
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: terraform_apply
+      changed_when: terraform_apply.rc == 0
+      tags:
+        - terraform
+        - apply
+
+    - name: Get Terraform outputs
+      command: terraform output -json
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: terraform_output
+      changed_when: false
+      tags:
+        - terraform
+        - output
+
+    - name: Parse Terraform outputs
+      set_fact:
+        terraform_outputs: "{{ terraform_output.stdout | from_json }}"
+      tags:
+        - terraform
+        - output
+
+    - name: Display server public IP
+      debug:
+        msg: "Server public IP: {{ terraform_outputs.server_public_ip.value }}"
+      tags:
+        - terraform
+        - output
+
+    - name: Wait for SSH to become available
+      wait_for:
+        host: "{{ terraform_outputs.server_public_ip.value }}"
+        port: 22
+        delay: 10
+        timeout: 300
+      tags:
+        - terraform
+        - wait
+
+- name: Configure AWS instance with Docker and application
+  hosts: aws_instances
+  become: true
+  vars_files:
+    - ../vars/main.yml
+  tasks:
+    - name: Wait for system to become reachable
+      wait_for_connection:
+        timeout: 300
+        delay: 10
+      tags:
+        - setup
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      tags:
+        - setup
+
+    - name: Clone e-commerce app repository
+      git:
+        repo: https://github.com/kisio/yolo.git
+        dest: /home/ubuntu/yolo
+      tags:
+        - clone
+        - setup
+        - app
+
+  roles:
+    - { role: ../roles/docker-install, tags: ['docker', 'setup', 'infrastructure'] }
+    - { role: ../roles/setup-mongodb, tags: ['mongodb', 'database', 'app'] }
+    - { role: ../roles/backend-deployment, tags: ['backend', 'api', 'app'] }
+    - { role: ../roles/frontend-deployment, tags: ['frontend', 'ui', 'app'] }
