@@ -1,13 +1,19 @@
-variable "aws_region" {
-  description = "AWS region to deploy resources"
+variable "project_id" {
+  description = "GCP project ID"
   type        = string
-  default     = "us-east-1"
+  default     = "yolo-ecommerce-project"
 }
 
-variable "vpc_cidr_block" {
-  description = "CIDR block for VPC"
+variable "region" {
+  description = "GCP region to deploy resources"
   type        = string
-  default     = "10.0.0.0/16"
+  default     = "us-central1"
+}
+
+variable "zone" {
+  description = "GCP zone for resources"
+  type        = string
+  default     = "us-central1-a"
 }
 
 variable "subnet_cidr_block" {
@@ -16,26 +22,20 @@ variable "subnet_cidr_block" {
   default     = "10.0.1.0/24"
 }
 
-variable "availability_zone" {
-  description = "Availability zone for subnet"
+variable "machine_type" {
+  description = "GCP machine type for compute instance"
   type        = string
-  default     = "us-east-1a"
+  default     = "e2-medium"
 }
 
-variable "instance_ami" {
-  description = "AMI ID for EC2 instance (Ubuntu 20.04)"
+variable "image" {
+  description = "Boot disk image for compute instance"
   type        = string
-  default     = "ami-0261755bbcb8c4a84" # Ubuntu 20.04 LTS in us-east-1
+  default     = "ubuntu-os-cloud/ubuntu-2004-lts"
 }
 
-variable "instance_type" {
-  description = "EC2 instance type"
+variable "ssh_public_key_path" {
+  description = "Path to SSH public key for instance access"
   type        = string
-  default     = "t2.micro"
-}
-
-variable "key_name" {
-  description = "Name of the SSH key pair"
-  type        = string
-  default     = "yolo-key"
+  default     = "~/.ssh/id_rsa.pub"
 }
