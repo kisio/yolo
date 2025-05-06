@@ -13,6 +13,8 @@
     ports:
       - "{{ backend_port }}"
     command: "npm start"
+    env:
+      MONGODB_URI: "mongodb+srv://derrick:derrickdevopstest@cluster0.bm24bxo.mongodb.net/darkroom?retryWrites=true&w=majority"
   become: yes
   tags:
     - backend

@@ -1,9 +1,9 @@
 ---
-frontend_image: brianbwire/brian-yolo-frontend:v1.0.0
-backend_image: brianbwire/brian-yolo-backend:v1.0.0
+frontend_image: derrickselempo/yolo-client:v1.0.0
+backend_image: derrickselempo/yolo-backend:v1.0.0
 mongo_image: mongo
-frontend_container: brian-yolo-frontend
-backend_container: brian-yolo-backend
+frontend_container: yolo-client
+backend_container: yolo-backend
 mongo_container: app-mongo
 mongo_port: "27017:27017"
 backend_port: "5000:5000"

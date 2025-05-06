@@ -7,8 +7,8 @@
   tasks:
     - name: Clone e-commerce app repository
       git:
-        repo: https://github.com/brianbwire/yolo-ecommerce-app.git
-        dest: /home/vagrant/yolo-ecommerce-app
+        repo: https://github.com/kisio/yolo.git
+        dest: /home/vagrant/yolo
       tags:
         - clone
         - setup
