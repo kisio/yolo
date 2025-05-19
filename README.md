@@ -1,24 +1,24 @@
 # YOLO E-commerce Application
 
-A containerized full-stack e-commerce application built with React, Node.js, and MongoDB, deployed using Ansible and Vagrant.
+A containerized full-stack e-commerce application built with React, Node.js, and MongoDB, deployed using Kubernetes on Google Kubernetes Engine (GKE).
 
 ## Features
 
 - Product management (Add, View products)
-- MongoDB persistence
+- MongoDB persistence with StatefulSets
 - Containerized microservices architecture
 - Secure container configuration with non-root users
-- Automated deployment with Ansible
-- Virtualized environment with Vagrant
+- Kubernetes orchestration with GKE
+- Persistent storage for database data
 
 ## Prerequisites
 
-- Vagrant (2.2.x or higher)
-- VirtualBox (6.1.x or higher)
-- Ansible (2.9.x or higher)
+- Google Cloud Platform account with GKE enabled
+- Google Cloud SDK (gcloud CLI)
+- kubectl command-line tool
 - Git
 
-## Quick Start with Ansible and Vagrant
+## Quick Start with Google Kubernetes Engine (GKE)
 
 1. Clone the repository:
 ```bash
@@ -26,63 +26,96 @@ git clone https://github.com/kisio/yolo.git
 cd yolo
 ```
 
-2. Start the Vagrant VM and provision with Ansible:
+2. Update the GKE project details in the deployment script:
 ```bash
-vagrant up
+vim k8s/deploy-to-gke.sh
+# Update PROJECT_ID, CLUSTER_NAME, and ZONE variables
 ```
 
-3. Access the application:
-- Frontend: http://localhost:8080
-- Backend API: http://localhost:5000
-- MongoDB: localhost:27017
-
-4. To re-provision the VM (if needed):
+3. Make the deployment script executable and run it:
 ```bash
-vagrant provision
+chmod +x k8s/deploy-to-gke.sh
+./k8s/deploy-to-gke.sh
 ```
 
-5. To SSH into the VM:
+4. Access the application:
+- The script will output the LoadBalancer IP addresses for both frontend and backend services
+- Frontend: http://<FRONTEND_IP>
+- Backend API: http://<BACKEND_IP>:5000
+
+5. To view the deployed resources:
 ```bash
-vagrant ssh
+kubectl get all -n yolo
+```
+
+6. To check MongoDB persistence (after adding items to cart):
+```bash
+# Delete the MongoDB pod
+kubectl delete pod mongodb-0 -n yolo
+# Verify that after the pod restarts, your cart items are still available
 ```
 
 ## Architecture
 
-The application consists of three microservices:
-1. Frontend (React) - Port 80 (mapped to 8080 on host)
-2. Backend (Node.js/Express) - Port 5000
-3. Database (MongoDB) - Port 27017
+The application is deployed on Google Kubernetes Engine with the following architecture:
 
-All services are connected through a custom bridge network and use Docker volumes for data persistence.
+1. **Frontend (React)**
+   - Deployed as a Kubernetes Deployment with 2 replicas
+   - Exposed via LoadBalancer Service and Ingress
+   - Container port 80
 
-## Ansible Playbook Structure
+2. **Backend (Node.js/Express)**
+   - Deployed as a Kubernetes Deployment with 2 replicas
+   - Exposed via LoadBalancer Service and Ingress
+   - Container port 5000
+   - Configured with environment variables via ConfigMap
 
-The deployment is orchestrated using Ansible with the following roles:
+3. **Database (MongoDB)**
+   - Deployed as a StatefulSet for data persistence
+   - Uses PersistentVolumeClaims for storage
+   - Exposed internally via ClusterIP and Headless Services
+   - Container port 27017
+   - Configured with secrets for authentication
 
-1. **docker-install**: Installs Docker and its dependencies
-2. **setup-mongodb**: Sets up MongoDB container and network
-3. **backend-deployment**: Deploys the Node.js backend API
-4. **frontend-deployment**: Deploys the React frontend
+All services are deployed in a dedicated Kubernetes namespace and communicate through Kubernetes Services. The MongoDB data is persisted using GKE's standard storage class.
 
-For detailed explanation of the playbook structure and execution order, see [explanation.md](explanation.md).
+## Kubernetes Manifest Structure
 
-## Container Details
+The deployment is orchestrated using Kubernetes manifests in the `k8s` directory:
 
-### Frontend Container:
-- Base image: `derrickselempo/yolo-client:v1.0.0`
-- Exposed port: 80
-- Non-root user: appuser
+1. **mongodb-statefulset.yaml**: Defines the MongoDB StatefulSet, Services, ConfigMap, and Secret
+2. **backend-deployment.yaml**: Defines the Backend Deployment, Services, and ConfigMap
+3. **frontend-deployment.yaml**: Defines the Frontend Deployment, Services, and ConfigMap
+4. **ingress.yaml**: Defines the Ingress resource for external access
+5. **deploy-to-gke.sh**: Script to automate deployment to GKE
 
-### Backend Container:
-- Base image: `derrickselempo/yolo-backend:v1.0.0`
-- Exposed port: 5000
-- Non-root user: appuser
-- Environment variables: MongoDB connection string
+For detailed explanation of the Kubernetes implementation choices, see [explanation.md](explanation.md).
 
-### Database Container:
-- Base image: `mongo`
-- Exposed port: 27017
-- Persistent volume: app-mongo-data
+## Kubernetes Resource Details
+
+### Frontend Deployment:
+- Image: `derrickselempo/yolo-client:v1.0.0`
+- Replicas: 2
+- Resource limits: 256Mi memory, 500m CPU
+- Exposed via LoadBalancer Service (port 80)
+- Health checks: Liveness and readiness probes
+
+### Backend Deployment:
+- Image: `derrickselempo/yolo-backend:v1.0.0`
+- Replicas: 2
+- Resource limits: 256Mi memory, 500m CPU
+- Exposed via LoadBalancer Service (port 5000)
+- Environment variables: MongoDB connection string via ConfigMap
+- Health checks: Liveness and readiness probes
+
+### MongoDB StatefulSet:
+- Image: `mongo:4.4`
+- Replicas: 1 (can be scaled for production)
+- Resource limits: 512Mi memory, 500m CPU
+- Persistent storage: 1Gi per pod using PersistentVolumeClaim
+- Authentication: Username/password via Kubernetes Secret
+- Exposed internally via Headless Service
+- Health checks: Liveness and readiness probes using MongoDB commands
 
 ## API Endpoints
 
@@ -94,35 +127,51 @@ For detailed explanation of the playbook structure and execution order, see [exp
 
 ## Development
 
-To modify the application:
+To modify the application for Kubernetes deployment:
 
 1. Make changes to the codebase
 2. Rebuild Docker images if necessary
-3. Update Ansible roles if needed
-4. Re-provision the VM with `vagrant provision`
+3. Push updated images to Docker Hub
+4. Update Kubernetes manifests in the `k8s` directory
+5. Apply changes with `kubectl apply -f k8s/<updated-file>.yaml`
 
 ## Troubleshooting
 
-If you encounter issues:
+If you encounter issues with the Kubernetes deployment:
 
-1. Check container logs:
+1. Check pod status and logs:
 ```bash
-vagrant ssh -c "sudo docker logs <container_name>"
+# Check pod status
+kubectl get pods -n yolo
+
+# View logs for a specific pod
+kubectl logs <pod-name> -n yolo
 ```
 
-2. Verify all containers are running:
+2. Verify all resources are running:
 ```bash
-vagrant ssh -c "sudo docker ps -a"
+kubectl get all -n yolo
 ```
 
-3. Restart containers if needed:
+3. Check persistent volume claims:
 ```bash
-vagrant ssh -c "sudo docker restart <container_name>"
+kubectl get pvc -n yolo
 ```
 
-4. Check MongoDB connection:
+4. Describe resources for detailed information:
 ```bash
-vagrant ssh -c "sudo docker exec -it app-mongo mongo"
+kubectl describe pod <pod-name> -n yolo
+kubectl describe statefulset mongodb -n yolo
+```
+
+5. Check MongoDB connection from within the backend pod:
+```bash
+kubectl exec -it <backend-pod-name> -n yolo -- curl -v mongodb:27017
+```
+
+6. Access MongoDB shell for debugging:
+```bash
+kubectl exec -it mongodb-0 -n yolo -- mongo -u derrick -p derrickdevopstest --authenticationDatabase admin
 ```
 
 ## License
