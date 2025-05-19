@@ -161,3 +161,111 @@ Tags are used throughout the playbook to allow selective execution:
 5. **Environment Variable Management**: Secure handling of connection strings
 6. **Network Isolation**: Using a dedicated Docker network
 7. **Data Persistence**: Volume mounting for MongoDB data
+
+# Kubernetes Implementation Explanation
+
+## 1. Choice of Kubernetes Objects Used for Deployment
+
+### MongoDB StatefulSet Implementation
+I chose to implement MongoDB using a StatefulSet rather than a Deployment for the following reasons:
+
+- **Stable Network Identities**: StatefulSets provide stable, unique network identifiers (mongodb-0, mongodb-1, etc.) which are critical for database clustering and replication.
+- **Ordered Deployment and Scaling**: StatefulSets guarantee ordered deployment, scaling, and deletion, which is essential for database operations to prevent data corruption.
+- **Stable Persistent Storage**: Each Pod in a StatefulSet has its own persistent volume claim that remains associated with it even if the Pod is rescheduled, ensuring data persistence.
+- **Predictable Pod Names**: StatefulSets maintain a predictable naming pattern, making it easier to identify and manage database instances.
+
+The MongoDB StatefulSet is configured with:
+- A headless service (`mongodb-headless`) for direct Pod addressing
+- PersistentVolumeClaims using the `volumeClaimTemplates` feature
+- Proper liveness and readiness probes to ensure database health
+
+### Backend and Frontend Deployments
+For the application tiers (backend and frontend), I chose to use Deployments because:
+
+- **Stateless Nature**: These components are stateless and don't require stable network identities or ordered deployment.
+- **Rolling Updates**: Deployments support rolling updates and rollbacks, which are ideal for application code changes.
+- **Horizontal Scaling**: Deployments make it easy to scale the number of replicas based on load.
+- **Self-healing**: Deployments automatically replace failed Pods, ensuring application availability.
+
+Both Deployments are configured with:
+- Multiple replicas for high availability
+- Resource limits and requests for proper cluster resource allocation
+- Health probes to ensure application responsiveness
+- ConfigMaps for environment-specific configuration
+
+## 2. Method Used to Expose Pods to Internet Traffic
+
+I implemented a multi-layered approach to expose the application to internet traffic:
+
+### Internal Service Layer
+- **ClusterIP Services**: Created for internal communication between components (backend to MongoDB)
+- **Headless Service**: For StatefulSet stable network identity
+
+### External Access Layer
+- **LoadBalancer Services**: For direct external access to both frontend and backend
+  - This provides dedicated external IPs for each service
+  - Simplifies debugging and testing during development
+  - Allows for independent scaling of ingress resources
+
+### Ingress Resource
+- Implemented an Ingress controller to provide HTTP routing
+- Path-based routing to direct traffic to appropriate services:
+  - `/api/*` routes to the backend service
+  - `/*` routes to the frontend service
+- This provides a single entry point with intelligent routing
+
+This approach offers flexibility in how the application is accessed:
+- Direct access to individual services via LoadBalancer IPs
+- Unified access through the Ingress for a production-like experience
+
+## 3. Use of Persistent Storage
+
+### Implementation of Persistent Storage
+I implemented persistent storage for MongoDB using:
+
+- **StatefulSet volumeClaimTemplates**: This feature automatically creates PersistentVolumeClaims for each Pod in the StatefulSet
+- **ReadWriteOnce Access Mode**: Appropriate for database workloads where a single node needs write access
+- **Standard Storage Class**: Using GKE's default storage class for dynamic provisioning
+- **1Gi Storage Size**: Allocated sufficient space for the application data while being mindful of cloud resource costs
+
+### Benefits of the Implemented Storage Solution
+- **Data Persistence**: MongoDB data survives Pod restarts, rescheduling, and even node failures
+- **Pod Identity Preservation**: If a Pod is rescheduled, it reconnects to the same persistent volume
+- **Independent Storage Scaling**: Storage can be resized independently of compute resources
+- **Automatic Provisioning**: The storage is dynamically provisioned by GKE, reducing operational overhead
+
+The implementation ensures that when a MongoDB Pod is deleted, the data remains intact, and when the Pod is recreated, it reattaches to the same persistent volume. This guarantees that items added to the cart will persist across Pod restarts or rescheduling events.
+
+## 4. Git Workflow Used to Achieve the Task
+
+For this Kubernetes implementation, I followed a structured Git workflow:
+
+1. **Feature Branch Creation**: Created a new branch `feature/k8s-deployment` from main
+2. **Component-wise Implementation**:
+   - Started with the database layer (MongoDB StatefulSet)
+   - Followed by the backend service
+   - Then the frontend service
+   - Finally, the ingress configuration
+3. **Iterative Testing**: Committed changes after testing each component
+4. **Documentation**: Added detailed comments in YAML files and updated explanation.md
+5. **Pull Request**: Created a PR with the complete implementation for review
+6. **Merge to Main**: After review and testing, merged to the main branch
+
+This workflow ensured:
+- Isolation of changes during development
+- Incremental testing of each component
+- Clear documentation of implementation decisions
+- Proper review before production deployment
+
+## 5. Best Practices Implemented
+
+- **Resource Limits and Requests**: Specified for all containers to ensure proper scheduling and prevent resource starvation
+- **Health Probes**: Implemented liveness and readiness probes for all services
+- **ConfigMaps and Secrets**: Used for configuration and sensitive data
+- **Non-root Users**: Containers run as non-root users for security
+- **StatefulSet for Databases**: Used appropriate controller types for each workload
+- **Headless Services**: Implemented for StatefulSets to provide stable network identities
+- **Ingress for Unified Access**: Simplified external access pattern
+- **Descriptive Labels and Annotations**: Used throughout for better organization and filtering
+- **Namespace Isolation**: Deployed all resources to a dedicated namespace for better organization
+- **Consistent Naming Convention**: Applied throughout all resources for clarity
